@@ -1,60 +1,102 @@
 package main
 
 import (
-	//"bufio"
+	"bufio"
+	"flag"
 	"fmt"
 	"os"
+	"strings"
 )
 
-func disp_path() {
+func dispPath() {
 	dir, err := os.Getwd()
 	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Print(dir)
-	fmt.Print("> $")
-}
-func cd() {
-	var path string
-	//fmt.Print("Enter path: ")
-	fmt.Scan(&path)
-	err := os.Chdir(path)
-	disp_path()
-	if err != nil {
-		fmt.Println(err)
-		disp_path()
+		fmt.Println("Error:", err)
 		return
 	}
+	fmt.Printf("%s> $ ", dir)
 }
-func ls() {
-	files, err := os.ReadDir(".")
-	if err != nil {
-		fmt.Println(err)
-		disp_path()	
-		return
-	}
-	for _, file := range files {
-		fmt.Println(file.Name())
-	}
-	disp_path()
 
+func cd(args []string) {
+	if len(args) == 0 {
+		fmt.Println("cd: missing operand")
+		return
+	}
+	for _, path := range args {
+		err := os.Chdir(path)
+		if err != nil {
+			fmt.Println("cd error:", err)
+		}
+	}
 }
+
+func ls(args []string) {
+	lsFlags := flag.NewFlagSet("ls", flag.ContinueOnError)
+	showLong := lsFlags.Bool("l", false, "garam")
+	showAll := lsFlags.Bool("a", false, "anday.")
+
+	err := lsFlags.Parse(args)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	remainingArgs := lsFlags.Args()
+	dir := "."
+	if len(remainingArgs) > 0 {
+		dir = remainingArgs[0]
+	}
+
+	files, err := os.ReadDir(dir)
+	if err != nil {
+		fmt.Println("ls error:", err)
+		return
+	}
+
+	for _, file := range files {
+		if !*showAll && strings.HasPrefix(file.Name(), ".") {
+			continue
+		}
+		if *showLong {
+			info, err := file.Info()
+			if err != nil {
+				fmt.Println(file.Name())
+			} else {
+				fmt.Printf("%v %6d %v %s\n", info.Mode(), info.Size(), info.ModTime().Format("Jan 2 15:04"), file.Name())
+			}
+		} else {
+			fmt.Println(file.Name())
+		}
+	}
+}
+
 func main() {
 	fmt.Println("Welcome to the shell")
-	disp_path()
-	//fmt.Print("> $")
-	var command string
-	fmt.Scan(&command)
-	for command != "exit" {
-		if command == "ls" {
-			ls()
+	scanner := bufio.NewScanner(os.Stdin)
+	for {
+		dispPath()
 
-		} else if command == "cd" {
-			cd()
-
+		if !scanner.Scan() {
+			break // Exit the loop if there's an error or EOF
 		}
-		//    disp_path()
-		//	fmt.Print("> $")
-		fmt.Scan(&command)
+		inputLine := strings.TrimSpace(scanner.Text())
+		if inputLine == "exit" {
+			break
+		}
+
+		tokens := strings.Fields(inputLine)
+		if len(tokens) == 0 {
+			continue
+		}
+		command := tokens[0]
+		args := tokens[1:]
+		switch command {
+		case "ls":
+			ls(args)
+		case "cd":
+			cd(args)
+		default:
+			fmt.Printf("%s: command not found\n", command)
+		}
 	}
 }
