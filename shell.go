@@ -22,7 +22,22 @@ func cd() {
 	disp_path()
 	if err != nil {
 		fmt.Println(err)
+		disp_path()
+		return
 	}
+}
+func ls() {
+	files, err := os.ReadDir(".")
+	if err != nil {
+		fmt.Println(err)
+		disp_path()	
+		return
+	}
+	for _, file := range files {
+		fmt.Println(file.Name())
+	}
+	disp_path()
+
 }
 func main() {
 	fmt.Println("Welcome to the shell")
@@ -32,15 +47,14 @@ func main() {
 	fmt.Scan(&command)
 	for command != "exit" {
 		if command == "ls" {
-			//ls()
-			fmt.Println("will be added in future")
-		}else if command == "cd" {
+			ls()
+
+		} else if command == "cd" {
 			cd()
 
 		}
-	//    disp_path()
-	//	fmt.Print("> $")
+		//    disp_path()
+		//	fmt.Print("> $")
 		fmt.Scan(&command)
 	}
 }
-
