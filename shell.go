@@ -10,6 +10,9 @@ import (
 	"strings"
 )
 
+var commandHistory []string
+var aliases = make(map[string]string)
+
 func help() {
 	fmt.Println("Potato Shell - Built-in Commands:")
 	fmt.Println("______________________________________________________________________________")
@@ -21,6 +24,32 @@ func help() {
 	fmt.Println("| help                 |   Show this help message")
 	fmt.Println("|  exit                |   Exit the shell")
 	fmt.Println("______________________________________________________________________________")
+}
+
+func showHistory() {
+	for i, cmd := range commandHistory {
+		fmt.Printf("%d: %s\n", i+1, cmd)
+	}
+}
+
+func setAlias(args []string) {
+	if len(args) < 2 {
+		fmt.Println("Usage: alias name command")
+		return
+	}
+	name := args[0]
+	command := strings.Join(args[1:], " ")
+	aliases[name] = command
+	fmt.Printf("alias set: %s='%s'\n", name, command)
+}
+
+func removeAlias(args []string) {
+	if len(args) < 1 {
+		fmt.Println("Usage: unalias name")
+		return
+	}
+	delete(aliases, args[0])
+	fmt.Printf("alias removed: %s\n", args[0])
 }
 
 func openFile(args []string) {
@@ -110,6 +139,41 @@ func ls(args []string) {
 		}
 	}
 }
+func echo(args []string) {
+	fmt.Println(strings.Join(args, " "))
+}
+func isBuiltIn(cmd string) bool {
+	builtIns := []string{"cd", "ls", "help", "alias", "unalias", "history", "echo", "open", "exit", "which"}
+	for _, b := range builtIns {
+		if b == cmd {
+			return true
+		}
+	}
+	return false
+}
+
+func which(args []string) {
+	if len(args) == 0 {
+		fmt.Println("which: missing operand")
+		return
+	}
+
+	for _, cmd := range args {
+		// If it's a built-in shell command, just say so
+		if isBuiltIn(cmd) {
+			fmt.Printf("%s: shell builtin\n", cmd)
+			continue
+		}
+
+		// Check in PATH for executable
+		path, err := exec.LookPath(cmd)
+		if err != nil {
+			fmt.Printf("%s: not found\n", cmd)
+		} else {
+			fmt.Println(path)
+		}
+	}
+}
 
 func main() {
 	fmt.Println("Welcome to the Potato Shell")
@@ -121,31 +185,53 @@ func main() {
 			break
 		}
 		inputLine := strings.TrimSpace(scanner.Text())
+
 		if inputLine == "exit" {
 			fmt.Println("Bye Bye")
 			break
 		}
 
+		if inputLine == "" {
+			continue
+		}
+
+		commandHistory = append(commandHistory, inputLine)
+
 		tokens := strings.Fields(inputLine)
 		if len(tokens) == 0 {
 			continue
 		}
+
+		if aliasCmd, ok := aliases[tokens[0]]; ok {
+
+			inputLine = aliasCmd + " " + strings.Join(tokens[1:], " ")
+			tokens = strings.Fields(inputLine)
+		}
+
 		command := tokens[0]
 		args := tokens[1:]
+
 		switch command {
 		case "ls":
 			ls(args)
 		case "cd":
 			cd(args)
+		case "open":
+			openFile(args)
+		case "help":
+			help()
+		case "history":
+			showHistory()
+		case "alias":
+			setAlias(args)
+		case "unalias":
+			removeAlias(args)
+		case "echo":
+			echo(args)
+		case "which":
+			which(args)
 		default:
 			fmt.Printf("%s: command not found\n", command)
 		}
-		if command == "open" {
-			openFile(args)
-		}
-		if command == "help" {
-			help()
-		}
-
 	}
 }
