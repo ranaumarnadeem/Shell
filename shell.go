@@ -5,8 +5,49 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"os/exec"
+	"runtime"
 	"strings"
 )
+
+func help() {
+	fmt.Println("Potato Shell - Built-in Commands:")
+	fmt.Println("______________________________________________________________________________")
+	fmt.Println("|  ls [-l] [-a] [dir]  |   List files in the current or specified directory")
+	fmt.Println("|      -l              |  Use a long listing format")
+	fmt.Println("|      -a              |   Show hidden files")
+	fmt.Println("|  cd <dir>            |   Change the current directory")
+	fmt.Println("|  open <file>         |   Open a file with the default associated program")
+	fmt.Println("| help                 |   Show this help message")
+	fmt.Println("|  exit                |   Exit the shell")
+	fmt.Println("______________________________________________________________________________")
+}
+
+func openFile(args []string) {
+	if len(args) == 0 {
+		fmt.Println("open: missing file operand")
+		return
+	}
+
+	file := args[0]
+	var cmd *exec.Cmd
+
+	switch runtime.GOOS {
+
+	case "linux":
+		cmd = exec.Command("xdg-open", file)
+	case "windows":
+		cmd = exec.Command("cmd", "/C", "start", "", file)
+	default:
+		fmt.Println("Unsupported OS")
+		return
+	}
+
+	err := cmd.Start()
+	if err != nil {
+		fmt.Println("Error opening file:", err)
+	}
+}
 
 func dispPath() {
 	dir, err := os.Getwd()
@@ -71,16 +112,17 @@ func ls(args []string) {
 }
 
 func main() {
-	fmt.Println("Welcome to the shell")
+	fmt.Println("Welcome to the Potato Shell")
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
 		dispPath()
 
 		if !scanner.Scan() {
-			break // Exit the loop if there's an error or EOF
+			break
 		}
 		inputLine := strings.TrimSpace(scanner.Text())
 		if inputLine == "exit" {
+			fmt.Println("Bye Bye")
 			break
 		}
 
@@ -98,5 +140,12 @@ func main() {
 		default:
 			fmt.Printf("%s: command not found\n", command)
 		}
+		if command == "open" {
+			openFile(args)
+		}
+		if command == "help" {
+			help()
+		}
+
 	}
 }
