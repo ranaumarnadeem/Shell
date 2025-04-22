@@ -1,6 +1,6 @@
-Here's a `README.md` for your Go project **Potato Shell**:
 
----
+
+
 
 ```markdown
 # 🥔 Potato Shell
@@ -87,8 +87,5 @@ README.md       # You're here!
 - UNIX shells like Bash and Zsh
 - A love for potatoes and Go 🥔
 
----
 
-Happy hacking!
-```
 
