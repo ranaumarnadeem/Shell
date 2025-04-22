@@ -1,8 +1,4 @@
 
-
-
-
-```markdown
 # 🥔 Potato Shell
 
 A simple and fun custom shell implemented in Go! Potato Shell supports basic built-in commands, aliases, command history, and integration with your system's environment for executing external programs.
