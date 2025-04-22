@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"mvdan.cc/sh/v3/shell"
 )
 
 var commandHistory []string
@@ -202,7 +203,11 @@ func main() {
 
 		commandHistory = append(commandHistory, inputLine)
 
-		tokens := strings.Fields(inputLine)
+		tokens, err := shell.Fields(inputLine, nil)
+if err != nil {
+	fmt.Println("Error parsing command:", err)
+	continue
+}
 		if len(tokens) == 0 {
 			continue
 		}
@@ -236,7 +241,25 @@ func main() {
 		case "which":
 			which(args)
 		default:
-			fmt.Printf("%s: command not found\n", command)
+			cmdPath, err := exec.LookPath(command)
+			if err != nil {
+				fmt.Printf("%s: command not found\n", command)
+				continue
+			}
+		
+			
+			cmd := exec.Command(cmdPath, args...)
+		
+			
+			cmd.Stdin = os.Stdin
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+		
+			
+			err = cmd.Run()
+			if err != nil {
+				fmt.Printf("Error running command: %v\n", err)
+			}
 		}
 	}
 }
