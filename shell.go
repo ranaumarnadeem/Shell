@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+
 	"mvdan.cc/sh/v3/shell"
 )
 
@@ -181,6 +182,39 @@ func which(args []string) {
 	}
 }
 
+func setEnvVar(args []string) {
+	if len(args) < 1 {
+		fmt.Println("Usage: setenv VAR [value]")
+		return
+	}
+
+	varName := args[0]
+	varValue := ""
+	if len(args) > 1 {
+		varValue = strings.Join(args[1:], " ")
+	}
+
+	os.Setenv(varName, varValue)
+	fmt.Printf("Set %s=%s\n", varName, varValue)
+}
+
+func unsetEnvVar(args []string) {
+	if len(args) < 1 {
+		fmt.Println("Usage: unsetenv VAR")
+		return
+	}
+
+	varName := args[0]
+	os.Unsetenv(varName)
+	fmt.Printf("Unset %s\n", varName)
+}
+
+func printEnv() {
+	for _, env := range os.Environ() {
+		fmt.Println(env)
+	}
+}
+
 func main() {
 	fmt.Println("Welcome to the Potato Shell")
 	scanner := bufio.NewScanner(os.Stdin)
@@ -191,6 +225,8 @@ func main() {
 			break
 		}
 		inputLine := strings.TrimSpace(scanner.Text())
+		expandedInput := os.ExpandEnv(inputLine)
+		commandHistory = append(commandHistory, expandedInput)
 
 		if inputLine == "exit" {
 			fmt.Println("Bye Bye")
@@ -202,12 +238,12 @@ func main() {
 		}
 
 		commandHistory = append(commandHistory, inputLine)
+		tokens, err := shell.Fields(expandedInput, nil)
 
-		tokens, err := shell.Fields(inputLine, nil)
-if err != nil {
-	fmt.Println("Error parsing command:", err)
-	continue
-}
+		if err != nil {
+			fmt.Println("Error parsing command:", err)
+			continue
+		}
 		if len(tokens) == 0 {
 			continue
 		}
@@ -240,22 +276,26 @@ if err != nil {
 			echo(args)
 		case "which":
 			which(args)
+
+		case "setenv":
+			setEnvVar(args)
+		case "unsetenv":
+			unsetEnvVar(args)
+		case "env":
+			printEnv()
 		default:
 			cmdPath, err := exec.LookPath(command)
 			if err != nil {
 				fmt.Printf("%s: command not found\n", command)
 				continue
 			}
-		
-			
+
 			cmd := exec.Command(cmdPath, args...)
-		
-			
+
 			cmd.Stdin = os.Stdin
 			cmd.Stdout = os.Stdout
 			cmd.Stderr = os.Stderr
-		
-			
+
 			err = cmd.Run()
 			if err != nil {
 				fmt.Printf("Error running command: %v\n", err)
