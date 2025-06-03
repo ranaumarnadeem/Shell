@@ -4,16 +4,24 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-
+	"strings"
 	"your-module-name/builtins"
 )
 
-// this handles both built-in and external command execution
 func ExecuteCommand(tokens []string, history *[]string, aliases *map[string]string) {
 	if len(tokens) == 0 {
 		return
 	}
-
+	for _, token := range tokens {
+		if token == "|" {
+			input := strings.Join(tokens, " ")
+			err := HandlePipes(input, history, aliases)
+			if err != nil {
+				fmt.Printf("Pipe error: %v\n", err)
+			}
+			return
+		}
+	}
 	command := tokens[0]
 	args := tokens[1:]
 
@@ -51,7 +59,7 @@ func ExecuteCommand(tokens []string, history *[]string, aliases *map[string]stri
 	}
 }
 
-// executeExternal runs external commands
+// execute External commands
 func executeExternal(command string, args []string) {
 	cmdPath, err := exec.LookPath(command)
 	if err != nil {
