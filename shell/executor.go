@@ -23,9 +23,8 @@ func NewExternalStage(name string, args []string) Stage {
 }
 
 // HandleCommand executes a single (non-piped) command string
-// It parses input, checks built-ins, or invokes an external command
-func HandleCommand(input string) error {
-	tokens, err := ParseInput(input)
+func HandleCommand(cmdStr string, aliases map[string]string, history []string, skibidiMode bool) error {
+	tokens, err := ParseInput(cmdStr, aliases)
 	if err != nil {
 		return err
 	}
@@ -36,19 +35,16 @@ func HandleCommand(input string) error {
 	name := tokens[0]
 	args := tokens[1:]
 
-	if isBuiltin(name) {
-		// Run built-in with access to stdin/stdout
-		// Pass empty environment variables and redirects to match the expected signature
-		return dispatchBuiltin(name, os.Stdin, os.Stdout, args, map[string]string{}, []string{})
+	if isBuiltin(name, skibidiMode) {
+		return dispatchBuiltin(name, os.Stdin, os.Stdout, args, aliases, history, skibidiMode)
 	}
 
-	
 	cmd := exec.Command(name, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
+
 	if err := cmd.Run(); err != nil {
-	
 		if ee, ok := err.(*exec.Error); ok && ee.Err == exec.ErrNotFound {
 			return fmt.Errorf("%s: command not found", name)
 		}
@@ -57,7 +53,20 @@ func HandleCommand(input string) error {
 	return nil
 }
 
-
+// AddHistory appends a command to the global history
 func AddHistory(cmd string) {
 	history = append(history, cmd)
+}
+
+// Updated isBuiltin to support Skibidi remapping
+func isBuiltin(cmd string, skibidiMode bool) bool {
+	if skibidiMode {
+		cmd = SkibidiRemap(cmd, true)
+	}
+	for _, b := range builtInList {
+		if cmd == b {
+			return true
+		}
+	}
+	return false
 }

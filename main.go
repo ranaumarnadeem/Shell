@@ -9,38 +9,75 @@ import (
 	"your-module-name/shell"
 )
 
+var (
+	commandHistory []string
+	aliases        = make(map[string]string)
+	skibidiMode    bool
+)
+
 func main() {
-	fmt.Println("Welcome to the Potato Shell")
+	fmt.Println("🎉 Welcome to the Potato Shell!")
+
+	// Mode selection
+	fmt.Println("Choose your mode:")
+	fmt.Println("1) Normal Mode (Boomer)")
+	fmt.Println("2) Skibidi Mode (For Real Rizzards)")
+	fmt.Print("Enter 1 or 2: ")
+
+	var mode string
+	fmt.Scanln(&mode)
+	if mode == "2" {
+		skibidiMode = true
+		fmt.Println("🛸 Entering Skibidi Mode... GYATTTTT 🚽")
+	} else {
+		fmt.Println("👴 Normal Mode activated.")
+	}
+
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
 		shell.DisplayPrompt()
 
 		if !scanner.Scan() {
-			fmt.Println()
 			break
 		}
 
-		input := strings.TrimSpace(scanner.Text())
-		if input == "" {
+		inputLine := strings.TrimSpace(scanner.Text())
+		if inputLine == "" {
 			continue
 		}
-		if input == "exit" {
-			fmt.Println("Bye Bye")
-			os.Exit(0)
+
+		if inputLine == "exit" {
+			if skibidiMode {
+				fmt.Println("👋 Bye Bye Skibidi Bro.")
+			} else {
+				fmt.Println("Goodbye.")
+			}
+			break
 		}
 
-		shell.AddHistory(input)
+		commandHistory = append(commandHistory, inputLine)
 
-		if strings.Contains(input, "|") {
-			if err := shell.HandlePipes(input); err != nil {
-				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		if strings.Contains(inputLine, "|") {
+			err := shell.HandlePipes(inputLine, &commandHistory, &aliases, skibidiMode)
+			if err != nil {
+				fmt.Printf("Pipeline Error: %v\n", err)
 			}
 			continue
 		}
 
-		if err := shell.HandleCommand(input); err != nil {
-			fmt.Fprintf(os.Stderr, "%v\n", err)
+		tokens, err := shell.ParseInput(inputLine, aliases)
+		if err != nil {
+			fmt.Println("Parse error:", err)
+			continue
+		}
+		if tokens == nil || len(tokens) == 0 {
+			continue
+		}
+
+		err = shell.HandleCommand(inputLine, aliases, commandHistory, skibidiMode)
+		if err != nil {
+			fmt.Printf("Command Error: %v\n", err)
 		}
 	}
 }

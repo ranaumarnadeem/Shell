@@ -13,7 +13,12 @@ type Stage struct {
 	Run func(in io.Reader, out io.Writer) error
 }
 
-func HandlePipes(input string) error {
+func HandlePipes(
+	input string,
+	history *[]string,
+	aliases *map[string]string,
+	skibidiMode bool,
+) error {
 	parts := strings.Split(input, "|")
 	if len(parts) < 2 {
 		return fmt.Errorf("invalid pipe syntax: %s", input)
@@ -26,7 +31,8 @@ func HandlePipes(input string) error {
 			return fmt.Errorf("empty command in pipeline: %s", input)
 		}
 
-		tokens, err := ParseInput(cmdStr)
+		tokens, err := ParseInput(cmdStr, *aliases)
+
 		if err != nil {
 			return fmt.Errorf("parse error for '%s': %w", cmdStr, err)
 		}
@@ -35,11 +41,12 @@ func HandlePipes(input string) error {
 		}
 
 		name, args := tokens[0], tokens[1:]
-		if isBuiltin(name) {
+		if isBuiltin(name, skibidiMode) {
+
 			// Built-in stage
 			stages = append(stages, Stage{
 				Run: func(in io.Reader, out io.Writer) error {
-					return dispatchBuiltin(name, in, out, args, aliases, builtInList)
+					return dispatchBuiltin(name, in, out, args, *aliases, *history, skibidiMode)
 				},
 			})
 		} else {

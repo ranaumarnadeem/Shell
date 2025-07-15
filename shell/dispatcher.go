@@ -1,25 +1,30 @@
 package shell
 
 import (
+	"fmt"
 	"io"
 	"your-module-name/builtins"
 )
 
 var builtInList = []string{
 	"cd", "ls", "echo", "help", "history", "alias", "unalias",
-	"env", "setenv", "unsetenv", "which", "pwd", "clear", "cat",
+	"env", "setenv", "unsetenv", "which", "pwd", "clear", "cat", "skibidi-help",
 }
 
-func isBuiltin(cmd string) bool {
-	for _, b := range builtInList {
-		if cmd == b {
-			return true
-		}
+func dispatchBuiltin(
+	cmd string,
+	in io.Reader,
+	out io.Writer,
+	args []string,
+	aliases map[string]string,
+	history []string,
+	skibidiMode bool,
+) error {
+	if skibidiMode {
+		cmd = SkibidiRemap(cmd, true)
 	}
-	return false
-}
+	fmt.Println("dispatching:", cmd, "skibidiMode:", skibidiMode)
 
-func dispatchBuiltin(cmd string, in io.Reader, out io.Writer, args []string, aliases map[string]string, history []string) error {
 	switch cmd {
 	case "cd":
 		return builtins.Cd(in, out, args)
@@ -48,13 +53,38 @@ func dispatchBuiltin(cmd string, in io.Reader, out io.Writer, args []string, ali
 	case "clear":
 		return builtins.Clear(in, out, args)
 	case "cat":
-        return builtins.Cat(in, out, args)	
+		return builtins.Cat(in, out, args)
+	case "skibidi-help":
+		return builtins.SkibidiHelp(out)
+
 	default:
 		return nil
 	}
 }
 
-func ShowHistory(in io.Reader, out io.Writer, history []string) error {
-	// Implementation of ShowHistory
-	return nil
+func SkibidiRemap(name string, skibidi bool) string {
+	if !skibidi {
+		return name
+	}
+	skibidiMap := map[string]string{
+		"giga-walk":    "cd",
+		"skibidi-peek": "ls",
+		"rizz-echo":    "echo",
+		"old-tales":    "history",
+		"brainblast":   "help",
+		"save-my-bits": "alias",
+		"unskibidi":    "unalias",
+		"wheres-it-at": "which",
+		"toxic-vars":   "env",
+		"nuke-var":     "unsetenv",
+		"spawn-var":    "setenv",
+		"cat-jam":      "cat",
+		"mirror-me":    "pwd",
+		"wipe-it":      "clear",
+		"skibidi-help": "skibidi-help",
+	}
+	if normal, ok := skibidiMap[name]; ok {
+		return normal
+	}
+	return name
 }
