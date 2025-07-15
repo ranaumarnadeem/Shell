@@ -1,87 +1,144 @@
-
 # 🥔 Potato Shell
 
-A simple and fun custom shell implemented in Go! Potato Shell supports basic built-in commands, aliases, command history, and integration with your system's environment for executing external programs.
+A quirky, powerful custom shell written in Go — with support for built-in commands, aliasing, history, and a secret **Skibidi Mode** for real Rizzards! 🚽
+
+---
 
 ## 🚀 Features
 
-- `ls [-l] [-a] [dir]` — List files in the current or specified directory
-- `cd <dir>` — Change the working directory
-- `open <file>` — Open a file with the default system application
-- `help` — Display built-in command usage
-- `exit` — Exit the shell
-- `echo <args>` — Print arguments to the terminal
-- `history` — View command history
-- `alias <name> <command>` — Create a shortcut for a command
-- `unalias <name>` — Remove a defined alias
-- `which <command>` — Show the location of a command (or if it's a built-in)
+- 🧱 **Built-in Commands**: `ls`, `cd`, `echo`, `help`, `pwd`, etc.
+- 🧠 **Command Aliasing**: `alias ll ls -la`
+- 📜 **Command History**: Scroll through previously entered commands
+- 🪄 **Skibidi Mode**: Type commands like `giga-walk`, `rizz-echo`, and `brainblast`
+- 🪢 **Pipes Support**: Use `|` to chain commands
+- 🌐 **External Commands**: Executes any binary available in `$PATH`
+- 🧽 **Environment Interaction**: `env`, `setenv`, `unsetenv`
+- 📂 **File Viewing**: `cat`, `clear`, `which`
 
-## 🧑‍💻 Usage
+---
+
+## 🧑‍💻 Getting Started
 
 ```bash
 go run main.go
-```
-
-You'll see a prompt like:
-
-```bash
-/path/to/current/directory> $
-```
-
-Start typing your commands just like you would in a traditional shell.
 
 ## 🛠 Built-in Commands
 
-| Command                | Description                                      |
-|------------------------|--------------------------------------------------|
-| `ls [-l] [-a] [dir]`   | List files, with optional long/hidden flags      |
-| `cd <dir>`             | Change current directory                         |
-| `open <file>`          | Opens file with system default application       |
-| `help`                 | Show help menu                                   |
-| `exit`                 | Exit the shell                                   |
-| `echo <text>`          | Print the given text                             |
-| `history`              | Show previously executed commands                |
-| `alias name command`   | Create a shortcut alias                          |
-| `unalias name`         | Remove an alias                                  |
-| `which <command>`      | Check path or type of the command                |
+| Command                  | Description                                     |
+|--------------------------|-------------------------------------------------|
+| `ls [-l] [-a] [dir]`     | List files (long/hidden supported)              |
+| `cd <dir>`               | Change working directory                        |
+| `pwd`                    | Print working directory                         |
+| `cat <file>`             | Print contents of a file                        |
+| `echo <args>`            | Print arguments to terminal                     |
+| `clear`                  | Clear the terminal screen                       |
+| `help`                   | Show help for built-in commands                 |
+| `history`                | Show previously entered commands                |
+| `alias <name> <cmd>`     | Define a new alias                              |
+| `unalias <name>`         | Remove a defined alias                          |
+| `which <cmd>`            | Show if command is built-in or system binary    |
+| `env`                    | Show all environment variables                  |
+| `setenv <k> <v>`         | Set an environment variable                     |
+| `unsetenv <k>`           | Remove an environment variable                  |
+| `skibidi-help`           | List Skibidi-mode command equivalents           |
 
-## 📝 Example
+---
+
+## 🧌 Skibidi Mode
+
+Potato Shell has a special **Skibidi Mode** for ultra-Rizzards.  
+In this mode, common commands are remapped to ridiculous but fun aliases:
+
+| Skibidi Command    | Normal Command |
+|--------------------|----------------|
+| `giga-walk`        | `cd`           |
+| `skibidi-peek`     | `ls`           |
+| `rizz-echo`        | `echo`         |
+| `brainblast`       | `help`         |
+| `old-tales`        | `history`      |
+| `save-my-bits`     | `alias`        |
+| `unskibidi`        | `unalias`      |
+| `wheres-it-at`     | `which`        |
+| `toxic-vars`       | `env`          |
+| `spawn-var`        | `setenv`       |
+| `nuke-var`         | `unsetenv`     |
+| `cat-jam`          | `cat`          |
+| `mirror-me`        | `pwd`          |
+| `wipe-it`          | `clear`        |
+| `skibidi-help`     | Shows this table 🧌 |
+
+Use `skibidi-help` anytime in Skibidi Mode to see this again.
+
+---
+
+## 📝 Example Session
 
 ```bash
 alias ll ls -la
 ll
-cd ..
-open notes.txt
-which ls
-```
+giga-walk ..
+rizz-echo Yo, I’m in Skibidi Mode 🚽
+save-my-bits greet echo Hello Rizz
+greet
 
-## 🔧 Requirements
 
-- Go 1.18+
-- Linux, Windows (partial support), or macOS (basic support, not fully tested)
-- `xdg-open` (Linux) or `cmd /C start` (Windows) for `open` command
-
-## 📦 External Libraries
-
-- [mvdan.cc/sh/v3/shell](https://pkg.go.dev/mvdan.cc/sh/v3/shell) — For POSIX-style shell parsing
-
-## 📁 Project Structure
+## 📦 Project Structure
 
 ```bash
-main.go         # Main shell implementation
-README.md       # You're here!
-```
+main.go               # Main shell logic and REPL
 
-## 📣 Notes
+/shell
+  dispatcher.go       # Handles built-ins + Skibidi remapping
+  executor.go         # Executes commands (internal/external)
 
-- `alias` replacements are simple string substitutions.
-- File opening is OS-specific. Only Linux and Windows are currently supported.
-- Error messages are minimal and meant for learning/demo purposes.
+/builtins
+  ls.go, cd.go, ...   # Each built-in implemented separately
+  skibidi_help.go     # Skibidi command help handler
+## 📦 Dependencies
+
+- ✅ **Standard Go library**
+- [Optional] [`mvdan.cc/sh`](https://pkg.go.dev/mvdan.cc/sh) — For advanced POSIX-style shell parsing (not required by default)
+
+---
+
+## ⚙️ Requirements
+
+- **Go**: 1.18 or higher
+
+### OS Support
+
+- ✅ **Linux** — Fully supported  
+- 🪟 **Windows** — Partial support  
+- 🍎 **macOS** — Basic support (not fully tested)
+
+### External File Opening
+
+- `xdg-open` (Linux)  
+- `cmd /C start` (Windows)
+
+---
+
+## 🤓 Dev Notes
+
+- Single-threaded by design  
+- No job control (`&`, `fg`, `bg`) yet  
+- Pipe support is basic (no redirection or subshells)  
+- Skibidi Mode is toggleable **only at launch** (for now)
+
+---
 
 ## ❤️ Inspired By
 
-- UNIX shells like Bash and Zsh
-- A love for potatoes and Go 🥔
+- Shells: **Bash**, **Zsh**, **Fish**
+- Culture: **Memes**, **Rizz**, and too much time online
+- Tech: Love for 🥔 **potatoes** and **Go**
 
+---
 
+## 📜 License
 
+**MIT License**  
+Do anything you want. Just **don't run**:
+
+```bash
+unalias rizz
