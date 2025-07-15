@@ -17,10 +17,12 @@ A quirky, powerful custom shell written in Go — with support for built-in comm
 
 ---
 
-## 🧑‍💻 Getting Started
+
 
 ```bash
 go run main.go
+```
+
 
 ## 🛠 Built-in Commands
 
@@ -80,20 +82,41 @@ giga-walk ..
 rizz-echo Yo, I’m in Skibidi Mode 🚽
 save-my-bits greet echo Hello Rizz
 greet
-
+```
 
 ## 📦 Project Structure
 
+## 📁 Project Structure
+
 ```bash
-main.go               # Main shell logic and REPL
+main.go                     # Entry point: handles user input loop, mode selection, and REPL logic
 
-/shell
-  dispatcher.go       # Handles built-ins + Skibidi remapping
-  executor.go         # Executes commands (internal/external)
+/shell                      # Core shell functionality and command orchestration
+  dispatcher.go             # Dispatches built-in commands and handles Skibidi mode remapping
+  executor.go               # Executes parsed commands (either built-in or external binaries)
+  parser.go                 # Parses user input, handles alias expansion and tokenization
+  pipes.go                  # Supports piped commands using io.Pipe and chaining
+  prompt.go                 # Displays the dynamic shell prompt (path + mode indicator)
 
-/builtins
-  ls.go, cd.go, ...   # Each built-in implemented separately
-  skibidi_help.go     # Skibidi command help handler
+/builtins                   # Each built-in command is implemented in its own file
+  ls.go                     # Implementation of `ls` (with `-a`, `-l` options)
+  cd.go                     # Changes the current working directory
+  echo.go                   # Prints arguments to stdout
+  help.go                   # Displays general help and usage
+  history.go                # Prints previously executed commands
+  alias.go                  # Adds/removes aliases (`alias`, `unalias`)
+  env.go                    # Prints all environment variables (`env`)
+  setenv.go                 # Sets an environment variable (`setenv`)
+  unsetenv.go               # Unsets an environment variable (`unsetenv`)
+  which.go                  # Displays whether a command is built-in or external (`which`)
+  pwd.go                    # Prints the current directory (`pwd`)
+  clear.go                  # Clears the terminal screen (`clear`)
+  cat.go                    # Outputs the contents of files (`cat`)
+  skibidi_help.go           # Displays the mapping of Skibidi commands to normal commands
+
+/helper
+ utilis.go                  #contains helper functions to check existance and emptyness of commands
+```
 ## 📦 Dependencies
 
 - ✅ **Standard Go library**
@@ -130,7 +153,7 @@ main.go               # Main shell logic and REPL
 ## ❤️ Inspired By
 
 - Shells: **Bash**, **Zsh**, **Fish**
-- Culture: **Memes**, **Rizz**, and too much time online
+- Culture: **Memes**, **Rizz**, and insta feed of @devvmuhammad
 - Tech: Love for 🥔 **potatoes** and **Go**
 
 ---
