@@ -1,40 +1,51 @@
 package shell
 
 import (
-	"fmt"
-	"os"
+	"errors"
+	"regexp"
 	"strings"
-
-	"mvdan.cc/sh/v3/shell"
 )
 
-//processes the input line into tokens
-func ParseInput(input string, aliases *map[string]string) ([]string, error) {
-	
-	expandedInput := os.ExpandEnv(input)
+var (
+	tokenPattern = regexp.MustCompile(`"[^"]*"|'[^']*'|[^\s]+`)
 
-	// Parse into tokens
-	tokens, err := shell.Fields(expandedInput, nil)
-	if err != nil {
-		return nil, fmt.Errorf("error parsing command: %w", err)
-	}
+	aliases = make(map[string]string)
+)
 
-	if len(tokens) == 0 {
+func ParseInput(input string) ([]string, error) {
+	input = strings.TrimSpace(input)
+	if input == "" {
 		return nil, nil
 	}
 
-	// Handle alias expansion
-	return expandAliases(tokens, aliases), nil
+	rawTokens := tokenPattern.FindAllString(input, -1)
+	if len(rawTokens) == 0 {
+		return nil, nil
+	}
+
+	tokens := make([]string, len(rawTokens))
+	for i, tok := range rawTokens {
+		if (strings.HasPrefix(tok, "\"") && strings.HasSuffix(tok, "\"")) ||
+			(strings.HasPrefix(tok, "'") && strings.HasSuffix(tok, "'")) {
+			tok = tok[1 : len(tok)-1]
+		}
+		tokens[i] = tok
+	}
+
+	// Alias expansion for first token
+	if aliasCmd, ok := aliases[tokens[0]]; ok {
+		// re-tokenize alias command + the rest
+		expanded := aliasCmd + " " + strings.Join(tokens[1:], " ")
+		toks, err := ParseInput(expanded)
+		if err != nil {
+			return nil, err
+		}
+		return toks, nil
+	}
+
+	return tokens, nil
 }
 
-// replaces commands with their aliased equivalents
-func expandAliases(tokens []string, aliases *map[string]string) []string {
-	if aliasCmd, ok := (*aliases)[tokens[0]]; ok {
-		newInput := aliasCmd
-		if len(tokens) > 1 {
-			newInput += " " + strings.Join(tokens[1:], " ")
-		}
-		return strings.Fields(newInput)
-	}
-	return tokens
-}
+var (
+	ErrEmptyInput = errors.New("input is empty")
+)

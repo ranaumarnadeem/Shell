@@ -7,11 +7,7 @@ import (
 	"strings"
 
 	"your-module-name/shell"
-	"your-module-name/helper"
 )
-
-var commandHistory []string
-var aliases = make(map[string]string)
 
 func main() {
 	fmt.Println("Welcome to the Potato Shell")
@@ -21,40 +17,30 @@ func main() {
 		shell.DisplayPrompt()
 
 		if !scanner.Scan() {
+			fmt.Println()
 			break
 		}
 
-		inputLine := strings.TrimSpace(scanner.Text())
-		
-		if inputLine == "exit" {
-			fmt.Println("Bye Bye")
-			break
-		}
-		
-		if utils.IsEmpty(inputLine) {
+		input := strings.TrimSpace(scanner.Text())
+		if input == "" {
 			continue
 		}
-		
-		commandHistory = append(commandHistory, inputLine)
+		if input == "exit" {
+			fmt.Println("Bye Bye")
+			os.Exit(0)
+		}
 
-		if strings.Contains(inputLine, "|") {
-			err := shell.HandlePipes(inputLine, &commandHistory, &aliases)
-			if err != nil {
-				fmt.Printf("Error: %v\n", err)
+		shell.AddHistory(input)
+
+		if strings.Contains(input, "|") {
+			if err := shell.HandlePipes(input); err != nil {
+				fmt.Fprintf(os.Stderr, "Error: %v\n", err)
 			}
 			continue
 		}
 
-		tokens, err := shell.ParseInput(inputLine, &aliases)
-		if err != nil {
-			fmt.Println(err)
-			continue
+		if err := shell.HandleCommand(input); err != nil {
+			fmt.Fprintf(os.Stderr, "%v\n", err)
 		}
-		
-		if tokens == nil {
-			continue
-		}
-		
-		shell.ExecuteCommand(tokens, &commandHistory, &aliases)
 	}
 }

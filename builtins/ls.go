@@ -1,48 +1,97 @@
+// ===== builtins/ls.go =====
 package builtins
 
 import (
 	"flag"
 	"fmt"
+	"io"
 	"os"
+	"sort"
 	"strings"
 )
 
-func Ls(args []string) {
-	lsFlags := flag.NewFlagSet("ls", flag.ContinueOnError)
-	showLong := lsFlags.Bool("l", false, "Use long listing format")
-	showAll := lsFlags.Bool("a", false, "Show hidden files")
+type fileEntry struct {
+	Name string
+	Info os.FileInfo
+}
 
-	err := lsFlags.Parse(args)
-	if err != nil {
-		fmt.Println("Error:", err)
-		return
+func humanReadable(size int64) string {
+	units := []string{"B", "K", "M", "G", "T"}
+	idx := 0
+	sz := float64(size)
+	for sz >= 1024 && idx < len(units)-1 {
+		sz /= 1024
+		idx++
+	}
+	return fmt.Sprintf("%.1f%s", sz, units[idx])
+}
+
+func Ls(in io.Reader, out io.Writer, args []string) error {
+	fs := flag.NewFlagSet("ls", flag.ContinueOnError)
+	fs.SetOutput(out)
+
+	showAll := fs.Bool("a", false, "Include hidden files")
+	longList := fs.Bool("l", false, "Long listing format")
+	human := fs.Bool("h", false, "Human-readable file sizes")
+	reverse := fs.Bool("r", false, "Reverse order")
+	sortTime := fs.Bool("t", false, "Sort by modification time (desc)")
+
+	if err := fs.Parse(args); err != nil {
+		return err
 	}
 
-	remainingArgs := lsFlags.Args()
 	dir := "."
-	if len(remainingArgs) > 0 {
-		dir = remainingArgs[0]
+	if fs.NArg() > 0 {
+		dir = fs.Arg(0)
 	}
 
-	files, err := os.ReadDir(dir)
+	entries, err := os.ReadDir(dir)
 	if err != nil {
-		fmt.Println("ls error:", err)
-		return
+		return err
 	}
 
-	for _, file := range files {
-		if !*showAll && strings.HasPrefix(file.Name(), ".") {
+	var files []fileEntry
+	for _, entry := range entries {
+		if !*showAll && strings.HasPrefix(entry.Name(), ".") {
 			continue
 		}
-		if *showLong {
-			info, err := file.Info()
-			if err != nil {
-				fmt.Println(file.Name())
-			} else {
-				fmt.Printf("%v %6d %v %s\n", info.Mode(), info.Size(), info.ModTime().Format("Jan 2 15:04"), file.Name())
-			}
-		} else {
-			fmt.Println(file.Name())
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+		files = append(files, fileEntry{entry.Name(), info})
+	}
+
+	if *sortTime {
+		sort.Slice(files, func(i, j int) bool {
+			return files[i].Info.ModTime().After(files[j].Info.ModTime())
+		})
+	} else {
+		sort.Slice(files, func(i, j int) bool {
+			return files[i].Name < files[j].Name
+		})
+	}
+	if *reverse {
+		for i, j := 0, len(files)-1; i < j; i, j = i+1, j-1 {
+			files[i], files[j] = files[j], files[i]
 		}
 	}
+
+	for _, f := range files {
+		if *longList {
+			size := fmt.Sprintf("%d", f.Info.Size())
+			if *human {
+				size = humanReadable(f.Info.Size())
+			}
+			fmt.Fprintf(out, "%-10s %6s %s %s\n",
+				f.Info.Mode().String(),
+				size,
+				f.Info.ModTime().Format("Jan 2 15:04"),
+				f.Name)
+		} else {
+			fmt.Fprintln(out, f.Name)
+		}
+	}
+
+	return nil
 }

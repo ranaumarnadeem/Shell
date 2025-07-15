@@ -2,78 +2,62 @@ package shell
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
-	"strings"
-	"your-module-name/builtins"
 )
 
-func ExecuteCommand(tokens []string, history *[]string, aliases *map[string]string) {
-	if len(tokens) == 0 {
-		return
-	}
-	for _, token := range tokens {
-		if token == "|" {
-			input := strings.Join(tokens, " ")
-			err := HandlePipes(input, history, aliases)
-			if err != nil {
-				fmt.Printf("Pipe error: %v\n", err)
-			}
-			return
-		}
-	}
-	command := tokens[0]
-	args := tokens[1:]
+// history stores the list of commands entered by the user
+var history []string
 
-	switch command {
-	case "cd":
-		builtins.Cd(args)
-	case "ls":
-		builtins.Ls(args)
-	case "open":
-		builtins.OpenFile(args)
-	case "help":
-		builtins.Help()
-	case "history":
-		builtins.ShowHistory(*history)
-	case "alias":
-		builtins.SetAlias(*aliases, args)
-	case "unalias":
-		builtins.RemoveAlias(*aliases, args)
-	case "echo":
-		builtins.Echo(args)
-	case "which":
-		builtinCommands := []string{"cd", "ls", "help", "alias", "unalias", "history", "echo", "open", "exit", "which", "setenv", "unsetenv", "env"}
-		builtins.Which(args, builtinCommands)
-	case "setenv":
-		builtins.SetEnvVar(args)
-	case "unsetenv":
-		builtins.UnsetEnvVar(args)
-	case "env":
-		builtins.PrintEnv()
-	case "exit":
-		fmt.Println("Bye Bye")
-		os.Exit(0)
-	default:
-		executeExternal(command, args)
+func NewExternalStage(name string, args []string) Stage {
+	return Stage{
+		Run: func(in io.Reader, out io.Writer) error {
+			cmd := exec.Command(name, args...)
+			cmd.Stdin = in
+			cmd.Stdout = out
+			cmd.Stderr = os.Stderr
+			return cmd.Run()
+		},
 	}
 }
 
-// execute External commands
-func executeExternal(command string, args []string) {
-	cmdPath, err := exec.LookPath(command)
+// HandleCommand executes a single (non-piped) command string
+// It parses input, checks built-ins, or invokes an external command
+func HandleCommand(input string) error {
+	tokens, err := ParseInput(input)
 	if err != nil {
-		fmt.Printf("%s: command not found\n", command)
-		return
+		return err
+	}
+	if len(tokens) == 0 {
+		return nil
 	}
 
-	cmd := exec.Command(cmdPath, args...)
-	cmd.Env = os.Environ()
+	name := tokens[0]
+	args := tokens[1:]
+
+	if isBuiltin(name) {
+		// Run built-in with access to stdin/stdout
+		// Pass empty environment variables and redirects to match the expected signature
+		return dispatchBuiltin(name, os.Stdin, os.Stdout, args, map[string]string{}, []string{})
+	}
+
+	
+	cmd := exec.Command(name, args...)
 	cmd.Stdin = os.Stdin
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-
 	if err := cmd.Run(); err != nil {
-		fmt.Printf("Error: %v\n", err)
+	
+		if ee, ok := err.(*exec.Error); ok && ee.Err == exec.ErrNotFound {
+			return fmt.Errorf("%s: command not found", name)
+		}
+		return fmt.Errorf("%s: %v", name, err)
 	}
+	return nil
+}
+
+
+func AddHistory(cmd string) {
+	history = append(history, cmd)
 }

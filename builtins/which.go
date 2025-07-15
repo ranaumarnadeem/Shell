@@ -1,36 +1,35 @@
+// ===== builtins/which.go =====
 package builtins
 
 import (
-	"fmt"
-	"os/exec"
+    "fmt"
+    "io"
+    "os/exec"
 )
 
-func Which(args []string, builtins []string) {
-	if len(args) == 0 {
-		fmt.Println("which: missing operand")
-		return
-	}
 
-	for _, cmd := range args {
-		// Check if it's a built-in command
-		isBuiltin := false
-		for _, b := range builtins {
-			if b == cmd {
-				fmt.Printf("%s: shell builtin\n", cmd)
-				isBuiltin = true
-				break
-			}
-		}
-		if isBuiltin {
-			continue
-		}
-
-		// Check in PATH
-		path, err := exec.LookPath(cmd)
-		if err != nil {
-			fmt.Printf("%s: not found\n", cmd)
-		} else {
-			fmt.Println(path)
-		}
-	}
+func Which(in io.Reader, out io.Writer, args []string, builtins []string) error {
+    if len(args) == 0 {
+        fmt.Fprintln(out, "Usage: which command")
+        return nil
+    }
+    for _, cmd := range args {
+        found := false
+        for _, b := range builtins {
+            if cmd == b {
+                fmt.Fprintf(out, "%s: shell built-in\n", cmd)
+                found = true
+                break
+            }
+        }
+        if !found {
+            if path, err := exec.LookPath(cmd); err == nil {
+                fmt.Fprintf(out, "%s: %s\n", cmd, path)
+            } else {
+                fmt.Fprintf(out, "%s: not found\n", cmd)
+            }
+        }
+    }
+    return nil
 }
+

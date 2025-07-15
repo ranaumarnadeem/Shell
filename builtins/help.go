@@ -1,24 +1,29 @@
 package builtins
 
-import "fmt"
+import (
+	"fmt"
+	"io"
+)
 
-func Help() {
-	fmt.Println("Potato Shell - Built-in Commands:")
-	fmt.Println("______________________________________________________________________________")
-	fmt.Println("|  ls [-l] [-a] [dir]  |   List files in the current or specified directory")
-	fmt.Println("|      -l              |   Use a long listing format")
-	fmt.Println("|      -a              |   Show hidden files")
-	fmt.Println("|  cd <dir>            |   Change the current directory")
-	fmt.Println("|  open <file>         |   Open a file with the default associated program")
-	fmt.Println("| help                 |   Show this help message")
-	fmt.Println("|  exit                |   Exit the shell")
-	fmt.Println("|  echo				|	Does whatever echo do")
-	fmt.Println("|  history             |   Show past commands")
-	fmt.Println("|  alias name command  |   Create a shortcut")
-	fmt.Println("|  unalias name        |   Remove a shortcut")
-	fmt.Println("|  which				|	Search for file or command in system path")
-	fmt.Println("|  setenv VAR [value]  |   Set environment variable")
-	fmt.Println("|  unsetenv VAR        |   Remove environment variable")
-	fmt.Println("|  env                 |   Show all environment variables")
-	fmt.Println("______________________________________________________________________________")
+// Help displays available built-in commands and usage
+func Help(in io.Reader, out io.Writer, args []string) error {
+	fmt.Fprintln(out, "Potato Shell - Built-in Commands:")
+	fmt.Fprintln(out, "______________________________________________________________________________")
+	fmt.Fprintln(out, "|  ls [-l] [-a] [dir]  |   List files")
+	fmt.Fprintln(out, "|  cd <dir>            |   Change directory")
+	fmt.Fprintln(out, "|  open <file>         |   Open a file")
+	fmt.Fprintln(out, "|  pwd                 |   Print working directory")
+	fmt.Fprintln(out, "|  clear               |   Clear the screen")
+	fmt.Fprintln(out, "|  help                |   Show this help message")
+	fmt.Fprintln(out, "|  exit                |   Exit the shell")
+	fmt.Fprintln(out, "|  echo <text>         |   Print text")
+	fmt.Fprintln(out, "|  history             |   Show command history")
+	fmt.Fprintln(out, "|  alias [name cmd]    |   Create or list aliases")
+	fmt.Fprintln(out, "|  unalias <name>      |   Remove an alias")
+	fmt.Fprintln(out, "|  which <cmd>         |   Locate command")
+	fmt.Fprintln(out, "|  setenv VAR [value]  |   Set environment variable")
+	fmt.Fprintln(out, "|  unsetenv VAR        |   Unset environment variable")
+	fmt.Fprintln(out, "|  env                 |   List environment variables")
+	fmt.Fprintln(out, "______________________________________________________________________________")
+	return nil
 }

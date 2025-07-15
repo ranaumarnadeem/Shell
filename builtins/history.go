@@ -1,9 +1,13 @@
 package builtins
 
-import "fmt"
+import (
+	"fmt"
+	"io"
+)
 
-func ShowHistory(history []string) {
+func ShowHistory(in io.Reader, out io.Writer, history []string) error {
 	for i, cmd := range history {
-		fmt.Printf("%d: %s\n", i+1, cmd)
+		fmt.Fprintf(out, "%d: %s\n", i+1, cmd)
 	}
+	return nil
 }

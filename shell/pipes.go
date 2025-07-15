@@ -4,62 +4,88 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"os/exec"
 	"strings"
 )
 
-func HandlePipes(input string, history *[]string, aliases *map[string]string) error {
-	commands := strings.Split(input, "|")
-	if len(commands) < 2 {
-		return fmt.Errorf("too short input : %s", input)
-	}
-
-	var cmds []*exec.Cmd
-	for _, cmdStr := range commands {
-		cmdStr = strings.TrimSpace(cmdStr)
-		if cmdStr == "" {
-			return fmt.Errorf("empty command")
-		}
-
-		tokens, err := ParseInput(cmdStr, aliases)
-		if err != nil {
-			return fmt.Errorf("can't parse the pipe command: %w", err)
-		}
-
-		if len(tokens) == 0 {
-			return fmt.Errorf("empty token")
-		}
-
-		cmd := exec.Command(tokens[0], tokens[1:]...)
-		cmds = append(cmds, cmd)
-	}
-
-	return executePipe(cmds)
+// Stage represents one element of the pipeline,
+// with Run taking an input reader and an output writer.
+type Stage struct {
+	Run func(in io.Reader, out io.Writer) error
 }
 
-func executePipe(cmds []*exec.Cmd) error {
+func HandlePipes(input string) error {
+	parts := strings.Split(input, "|")
+	if len(parts) < 2 {
+		return fmt.Errorf("invalid pipe syntax: %s", input)
+	}
 
-	for i := 0; i < len(cmds)-1; i++ {
+	var stages []Stage
+	for _, part := range parts {
+		cmdStr := strings.TrimSpace(part)
+		if cmdStr == "" {
+			return fmt.Errorf("empty command in pipeline: %s", input)
+		}
+
+		tokens, err := ParseInput(cmdStr)
+		if err != nil {
+			return fmt.Errorf("parse error for '%s': %w", cmdStr, err)
+		}
+		if len(tokens) == 0 {
+			return fmt.Errorf("no tokens in segment: %s", cmdStr)
+		}
+
+		name, args := tokens[0], tokens[1:]
+		if isBuiltin(name) {
+			// Built-in stage
+			stages = append(stages, Stage{
+				Run: func(in io.Reader, out io.Writer) error {
+					return dispatchBuiltin(name, in, out, args, aliases, builtInList)
+				},
+			})
+		} else {
+			// External command stage
+			stages = append(stages, NewExternalStage(name, args))
+		}
+	}
+
+	return ExecuteStages(stages)
+}
+
+func ExecuteStages(stages []Stage) error {
+	n := len(stages)
+	readers := make([]io.Reader, n)
+	writers := make([]io.WriteCloser, n)
+
+	for i := 0; i < n-1; i++ {
 		r, w := io.Pipe()
-		cmds[i].Stdout = w
-		cmds[i+1].Stdin = r
+		writers[i] = w
+		readers[i+1] = r
 	}
 
-	lastCmd := cmds[len(cmds)-1]
-	lastCmd.Stdout = os.Stdout
-	lastCmd.Stderr = os.Stderr
+	readers[0] = os.Stdin
+	writers[n-1] = nopWriteCloser{os.Stdout}
 
-	for _, cmd := range cmds {
-		if err := cmd.Start(); err != nil {
-			return fmt.Errorf("pipe start error: %w", err)
-		}
-	}
+	for i, st := range stages {
+		in := readers[i]
+		out := writers[i]
+		go func(s Stage, in io.Reader, out io.Writer) {
+			defer func() {
+				if wc, ok := out.(io.WriteCloser); ok {
+					wc.Close()
+				}
+			}()
 
-	for _, cmd := range cmds {
-		if err := cmd.Wait(); err != nil {
-			return fmt.Errorf("pipe wait error: %w", err)
-		}
+			if err := s.Run(in, out); err != nil {
+				fmt.Fprintf(os.Stderr, "pipeline stage error: %v\n", err)
+			}
+		}(st, in, out)
 	}
 
 	return nil
 }
+
+// nopWriteCloser wraps an io.Writer to satisfy io.WriteCloser (no-op Close)
+type nopWriteCloser struct{ io.Writer }
+
+// Close does nothing for the wrapper
+func (nopWriteCloser) Close() error { return nil }

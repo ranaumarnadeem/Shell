@@ -2,18 +2,19 @@ package builtins
 
 import (
 	"fmt"
+	"io"
 	"os"
 )
 
-func Cd(args []string) {
+// Cd changes the current working directory
+func Cd(in io.Reader, out io.Writer, args []string) error {
 	if len(args) == 0 {
-		fmt.Println("cd: missing operand")
-		return
+		fmt.Fprintln(out, "cd: missing operand")
+		return nil
 	}
-	for _, path := range args {
-		err := os.Chdir(path)
-		if err != nil {
-			fmt.Println("cd error:", err)
-		}
+	path := args[0]
+	if err := os.Chdir(path); err != nil {
+		fmt.Fprintf(out, "cd error: %v\n", err)
 	}
+	return nil
 }
